@@ -12,7 +12,7 @@ export default function Home() {
       <section className="w-full max-w-2xl">
         <div className="relative w-full aspect-[4/6] sm:aspect-[1/1] border-2 border-black bg-white overflow-hidden rounded-lg">
           <iframe
-            src="https://docs.google.com/forms/d/e/1FAIpQLSePjSLw-x1Yj2YnGNaYnPBwtwTzr_xrj69kqefOU3odwMrUDQ/viewform?embedded=true"
+            src="https://docs.google.com/forms/d/e/1FAIpQLSfZbldHt1J-xauOGt48fyvLKrl1OoDPJWhllwBHQ27OJk7myw/viewform?embedded=true"
             className="absolute inset-0 w-full h-full"
             frameBorder="0"
             marginHeight={0}
