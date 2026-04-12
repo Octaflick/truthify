@@ -20,25 +20,17 @@ interface AnalysisResult {
   source: string;
 }
 
-function getVerdictStyle(verdict: string) {
+function getVerdictColor(verdict: string) {
   const v = (verdict ?? "").toUpperCase();
-  if (v.includes("REAL")) return "text-green-700 bg-green-50 border-green-200";
-  if (v.includes("FAKE")) return "text-red-700 bg-red-50 border-red-200";
-  return "text-yellow-700 bg-yellow-50 border-yellow-200";
+  if (v.includes("REAL")) return { bg: "#34c759", text: "#ffffff" };
+  if (v.includes("FAKE")) return { bg: "#ff3b30", text: "#ffffff" };
+  return { bg: "#ff9500", text: "#ffffff" };
 }
 
-function getBarColor(score: number) {
-  if (score >= 70) return "bg-green-500";
-  if (score >= 40) return "bg-yellow-500";
-  return "bg-red-500";
-}
-
-function getToneStyle(tone: string) {
-  const t = (tone ?? "").toLowerCase();
-  if (t.includes("neutral")) return "text-green-700 bg-green-50";
-  if (t.includes("slightly")) return "text-blue-700 bg-blue-50";
-  if (t.includes("moderately")) return "text-yellow-700 bg-yellow-50";
-  return "text-red-700 bg-red-50";
+function getScoreColor(score: number) {
+  if (score >= 70) return "#34c759";
+  if (score >= 40) return "#ff9500";
+  return "#ff3b30";
 }
 
 export default function Home() {
@@ -51,7 +43,6 @@ export default function Home() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-
     if (!headline.trim() && !content.trim()) return;
 
     setStatus("loading");
@@ -93,230 +84,44 @@ export default function Home() {
   const confidence = Number(result?.confidence_score ?? 0);
   const credibility = Number(result?.credibility_score ?? 0);
   const manipulation = Number(result?.manipulation_score ?? 0);
+  const verdictColor = result ? getVerdictColor(result.verdict) : null;
 
   return (
-    <div className="flex min-h-screen flex-col items-center p-8 font-sans">
-      <header className="mb-12 w-full max-w-xl text-center">
-        <h1 className="text-5xl font-black uppercase tracking-tighter">Truthify</h1>
-      </header>
-
-      {/* Form */}
-      {status !== "done" && (
-        <section className="w-full max-w-2xl">
-          <form onSubmit={handleSubmit} className="border-2 border-black rounded-lg bg-white overflow-hidden">
-            <div className="p-6 space-y-4">
-              <div>
-                <label htmlFor="headline" className="block text-xs font-bold uppercase tracking-widest opacity-60 mb-2">
-                  Article Title *
-                </label>
-                <input
-                  id="headline"
-                  type="text"
-                  value={headline}
-                  onChange={(e) => setHeadline(e.target.value)}
-                  placeholder="Enter the headline or claim to verify"
-                  className="w-full px-4 py-3 border-2 border-black/20 rounded-lg text-sm focus:border-black focus:outline-none transition-colors"
-                  required
-                  disabled={status === "loading"}
-                />
-              </div>
-              <div>
-                <label htmlFor="content" className="block text-xs font-bold uppercase tracking-widest opacity-60 mb-2">
-                  Article Content *
-                </label>
-                <textarea
-                  id="content"
-                  value={content}
-                  onChange={(e) => setContent(e.target.value)}
-                  placeholder="Paste the full article text here"
-                  rows={6}
-                  className="w-full px-4 py-3 border-2 border-black/20 rounded-lg text-sm focus:border-black focus:outline-none transition-colors resize-y"
-                  required
-                  disabled={status === "loading"}
-                />
-              </div>
-              <div>
-                <label htmlFor="source" className="block text-xs font-bold uppercase tracking-widest opacity-60 mb-2">
-                  Source URL (optional)
-                </label>
-                <input
-                  id="source"
-                  type="url"
-                  value={source}
-                  onChange={(e) => setSource(e.target.value)}
-                  placeholder="https://example.com/article"
-                  className="w-full px-4 py-3 border-2 border-black/20 rounded-lg text-sm focus:border-black focus:outline-none transition-colors"
-                  disabled={status === "loading"}
-                />
-              </div>
-            </div>
-            <div className="px-6 pb-6">
-              <button
-                type="submit"
-                disabled={status === "loading"}
-                className="w-full py-3 bg-black text-white font-bold uppercase tracking-widest text-sm rounded-lg hover:bg-black/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {status === "loading" ? "Analyzing..." : "Analyze Article"}
-              </button>
-            </div>
-          </form>
-        </section>
-      )}
-
-      {/* Loading */}
-      {status === "loading" && (
-        <section className="w-full max-w-2xl mt-8">
-          <div className="border-2 border-black rounded-lg p-8 bg-white text-center">
-            <div className="inline-block w-8 h-8 border-3 border-black border-t-transparent rounded-full animate-spin mb-4" />
-            <p className="font-bold text-lg">Analyzing your article...</p>
-            <p className="text-sm opacity-50 mt-2">
-              This usually takes 5-15 seconds
-            </p>
-          </div>
-        </section>
-      )}
-
-      {/* Error */}
-      {status === "error" && (
-        <section className="w-full max-w-2xl mt-8">
-          <div className="border-2 border-red-200 rounded-lg p-6 bg-red-50 text-center">
-            <p className="text-sm text-red-700">{errorMsg}</p>
-            <button
-              onClick={() => setStatus("idle")}
-              className="mt-4 px-6 py-2 text-xs font-bold uppercase tracking-widest border-2 border-red-300 rounded-lg hover:bg-red-100 transition-colors"
-            >
-              Try Again
-            </button>
-          </div>
-        </section>
-      )}
-
-      {/* Analysis Results */}
-      {status === "done" && result && (
-        <section className="w-full max-w-2xl mt-0 mb-12">
-          <div className="border-2 border-black rounded-lg overflow-hidden bg-white">
-            {/* Verdict */}
-            <div className={`p-6 border-b-2 border-black ${getVerdictStyle(result.verdict)}`}>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-widest opacity-60">Verdict</p>
-                  <p className="text-3xl font-black uppercase tracking-tight mt-1">
-                    {result.verdict}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="text-xs font-bold uppercase tracking-widest opacity-60">Confidence</p>
-                  <p className="text-3xl font-black mt-1">{confidence}%</p>
-                </div>
-              </div>
-              <div className="mt-4 h-2 bg-black/10 rounded-full overflow-hidden">
-                <div
-                  className={`h-full rounded-full transition-all duration-700 ${getBarColor(confidence)}`}
-                  style={{ width: `${confidence}%` }}
-                />
-              </div>
-            </div>
-
-            {/* Article Info */}
-            <div className="p-6 border-b border-black/10">
-              <p className="text-xs font-bold uppercase tracking-widest opacity-40 mb-1">Article</p>
-              <p className="font-bold text-lg">{result.headline}</p>
-              {result.source && (
-                <p className="text-sm opacity-50 mt-1 break-all">{result.source}</p>
-              )}
-            </div>
-
-            {/* Key Facts */}
-            {result.key_facts && (
-              <div className="p-6 border-b border-black/10">
-                <p className="text-xs font-bold uppercase tracking-widest opacity-40 mb-2">Key Facts</p>
-                <p className="text-sm leading-relaxed">{result.key_facts}</p>
-              </div>
-            )}
-
-            {/* Scores */}
-            <div className="grid grid-cols-2 border-b border-black/10">
-              <div className="p-6 border-r border-black/10">
-                <p className="text-xs font-bold uppercase tracking-widest opacity-40 mb-1">Source Credibility</p>
-                <p className="text-2xl font-black">{credibility}%</p>
-                <p className="text-sm font-semibold uppercase mt-1 opacity-60">
-                  {result.source_credibility}
-                </p>
-              </div>
-              <div className="p-6">
-                <p className="text-xs font-bold uppercase tracking-widest opacity-40 mb-1">Manipulation</p>
-                <p className="text-2xl font-black">{manipulation}%</p>
-                <span className={`inline-block mt-1 px-2 py-0.5 rounded text-xs font-bold ${getToneStyle(result.emotional_tone)}`}>
-                  {result.emotional_tone}
-                </span>
-              </div>
-            </div>
-
-            {/* Details */}
-            <div className="p-6 space-y-4">
-              {result.bias_detected && result.bias_detected !== "none detected" && (
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-widest opacity-40 mb-1">Bias</p>
-                  <p className="text-sm">{result.bias_detected}</p>
-                </div>
-              )}
-              {result.manipulation_tactics && result.manipulation_tactics !== "none" && (
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-widest opacity-40 mb-1">Tactics</p>
-                  <div className="flex flex-wrap gap-2 mt-1">
-                    {result.manipulation_tactics.split(",").map((t) => (
-                      <span key={t.trim()} className="px-2 py-1 bg-red-50 text-red-700 text-xs font-semibold rounded">
-                        {t.trim()}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {result.red_flags && result.red_flags !== "none" && (
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-widest opacity-40 mb-1">Red Flags</p>
-                  <div className="flex flex-wrap gap-2 mt-1">
-                    {result.red_flags.split(",").map((f) => (
-                      <span key={f.trim()} className="px-2 py-1 bg-yellow-50 text-yellow-700 text-xs font-semibold rounded">
-                        {f.trim()}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Recommendation */}
-            {result.recommendation && (
-              <div className="p-6 bg-black/2 border-t border-black/10">
-                <p className="text-xs font-bold uppercase tracking-widest opacity-40 mb-2">Recommendation</p>
-                <p className="text-sm font-medium leading-relaxed">{result.recommendation}</p>
-              </div>
-            )}
-
-            {/* Disclaimer */}
-            <div className="px-6 py-4 bg-black/4 border-t border-black/10">
-              <p className="text-xs opacity-40 text-center">
-                AI-generated analysis. Always verify from multiple trusted sources.
-              </p>
-            </div>
-          </div>
-
-          {/* Analyze Another */}
-          <button
-            onClick={handleReset}
-            className="w-full mt-4 py-3 border-2 border-black rounded-lg font-bold uppercase tracking-widest text-sm hover:bg-black hover:text-white transition-colors"
-          >
-            Analyze Another Article
-          </button>
-        </section>
-      )}
-
-      <footer className="mt-auto pt-16 flex flex-col items-center gap-6">
-        <nav className="flex items-center gap-8">
+    <div className="min-h-screen" style={{ background: "#f5f5f7" }}>
+      {/* Navigation */}
+      <nav
+        className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 lg:px-12"
+        style={{
+          height: 48,
+          background: "rgba(245, 245, 247, 0.72)",
+          backdropFilter: "saturate(180%) blur(20px)",
+          WebkitBackdropFilter: "saturate(180%) blur(20px)",
+          borderBottom: "1px solid rgba(0, 0, 0, 0.08)",
+        }}
+      >
+        <Link
+          href="/"
+          style={{
+            fontSize: 16,
+            fontWeight: 600,
+            color: "#1d1d1f",
+            letterSpacing: "-0.374px",
+            textDecoration: "none",
+          }}
+        >
+          Truthify
+        </Link>
+        <div className="flex items-center gap-6">
           <Link
             href="/blog"
-            className="text-sm font-black uppercase tracking-widest hover:opacity-50 transition-opacity"
+            className="hover:opacity-60 transition-opacity"
+            style={{
+              fontSize: 12,
+              fontWeight: 400,
+              color: "rgba(0, 0, 0, 0.8)",
+              letterSpacing: "-0.12px",
+              textDecoration: "none",
+            }}
           >
             Blog
           </Link>
@@ -324,21 +129,644 @@ export default function Home() {
             href="https://github.com/AbnormalPilot/truthify"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-2 px-4 py-2 rounded-full hover:bg-black/5 transition-all duration-300 group"
+            className="hover:opacity-60 transition-opacity"
+            style={{
+              fontSize: 12,
+              fontWeight: 400,
+              color: "rgba(0, 0, 0, 0.8)",
+              letterSpacing: "-0.12px",
+              textDecoration: "none",
+            }}
           >
-            <svg
-              height="24"
-              aria-hidden="true"
-              viewBox="0 0 16 16"
-              version="1.1"
-              width="24"
-              className="fill-current"
-            >
-              <path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"></path>
-            </svg>
-            <span className="font-semibold text-sm tracking-tight">GitHub</span>
+            GitHub
           </a>
-        </nav>
+        </div>
+      </nav>
+
+      {/* Spacer for fixed nav */}
+      <div style={{ height: 48, background: "#f5f5f7" }} />
+
+      {/* Form Section */}
+      {status !== "done" && (
+        <section style={{ background: "#f5f5f7", paddingTop: 56, paddingBottom: 80 }}>
+          <div style={{ maxWidth: 600, margin: "0 auto", padding: "0 24px" }}>
+            <div style={{ textAlign: "center", marginBottom: 40 }}>
+              <h1
+                style={{
+                  fontSize: "clamp(32px, 6vw, 48px)",
+                  fontWeight: 600,
+                  lineHeight: 1.07,
+                  letterSpacing: "-0.28px",
+                  color: "#1d1d1f",
+                  margin: 0,
+                }}
+              >
+                Truthify
+              </h1>
+              <p
+                style={{
+                  fontSize: 17,
+                  fontWeight: 400,
+                  lineHeight: 1.47,
+                  letterSpacing: "-0.374px",
+                  color: "rgba(0, 0, 0, 0.48)",
+                  marginTop: 8,
+                }}
+              >
+                Verify any claim. Instantly.
+              </p>
+            </div>
+            <form onSubmit={handleSubmit}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                {/* Headline Input */}
+                <div>
+                  <label
+                    htmlFor="headline"
+                    style={{
+                      display: "block",
+                      fontSize: 12,
+                      fontWeight: 600,
+                      lineHeight: 1.33,
+                      letterSpacing: "-0.12px",
+                      color: "rgba(0, 0, 0, 0.48)",
+                      marginBottom: 8,
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    Article Title
+                  </label>
+                  <input
+                    id="headline"
+                    type="text"
+                    value={headline}
+                    onChange={(e) => setHeadline(e.target.value)}
+                    placeholder="Enter the headline or claim to verify"
+                    required
+                    disabled={status === "loading"}
+                    style={{ width: "100%", background: "#ffffff", borderRadius: 12 }}
+                  />
+                </div>
+
+                {/* Content Input */}
+                <div>
+                  <label
+                    htmlFor="content"
+                    style={{
+                      display: "block",
+                      fontSize: 12,
+                      fontWeight: 600,
+                      lineHeight: 1.33,
+                      letterSpacing: "-0.12px",
+                      color: "rgba(0, 0, 0, 0.48)",
+                      marginBottom: 8,
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    Article Content
+                  </label>
+                  <textarea
+                    id="content"
+                    value={content}
+                    onChange={(e) => setContent(e.target.value)}
+                    placeholder="Paste the full article text here"
+                    rows={6}
+                    required
+                    disabled={status === "loading"}
+                    style={{ width: "100%", background: "#ffffff", borderRadius: 12, resize: "vertical" }}
+                  />
+                </div>
+
+                {/* Source Input */}
+                <div>
+                  <label
+                    htmlFor="source"
+                    style={{
+                      display: "block",
+                      fontSize: 12,
+                      fontWeight: 600,
+                      lineHeight: 1.33,
+                      letterSpacing: "-0.12px",
+                      color: "rgba(0, 0, 0, 0.48)",
+                      marginBottom: 8,
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    Source URL <span style={{ fontWeight: 400, textTransform: "none" }}>(optional)</span>
+                  </label>
+                  <input
+                    id="source"
+                    type="url"
+                    value={source}
+                    onChange={(e) => setSource(e.target.value)}
+                    placeholder="https://example.com/article"
+                    disabled={status === "loading"}
+                    style={{ width: "100%", background: "#ffffff", borderRadius: 12 }}
+                  />
+                </div>
+              </div>
+
+              {/* Submit Button */}
+              <button
+                type="submit"
+                disabled={status === "loading"}
+                style={{
+                  width: "100%",
+                  marginTop: 24,
+                  padding: "16px 24px",
+                  fontSize: 17,
+                  fontWeight: 400,
+                  lineHeight: 1,
+                  background: "#0071e3",
+                  color: "#ffffff",
+                  borderRadius: 980,
+                }}
+                className="hover:brightness-110"
+              >
+                {status === "loading" ? "Analyzing..." : "Analyze Article"}
+              </button>
+            </form>
+          </div>
+        </section>
+      )}
+
+      {/* Loading State */}
+      {status === "loading" && (
+        <section
+          className="flex flex-col items-center justify-center"
+          style={{ background: "#f5f5f7", padding: "60px 24px" }}
+        >
+          <div
+            className="animate-spin"
+            style={{
+              width: 32,
+              height: 32,
+              border: "3px solid rgba(0, 0, 0, 0.1)",
+              borderTopColor: "#0071e3",
+              borderRadius: "50%",
+              marginBottom: 20,
+            }}
+          />
+          <p style={{ fontSize: 21, fontWeight: 600, lineHeight: 1.19, color: "#1d1d1f" }}>
+            Analyzing your article
+          </p>
+          <p style={{ fontSize: 14, color: "rgba(0, 0, 0, 0.48)", marginTop: 8, letterSpacing: "-0.224px" }}>
+            This usually takes 5-15 seconds
+          </p>
+        </section>
+      )}
+
+      {/* Error State */}
+      {status === "error" && (
+        <section
+          className="flex flex-col items-center justify-center"
+          style={{ background: "#f5f5f7", padding: "60px 24px" }}
+        >
+          <p style={{ fontSize: 17, color: "#ff3b30", marginBottom: 20, letterSpacing: "-0.374px" }}>
+            {errorMsg}
+          </p>
+          <button
+            onClick={() => setStatus("idle")}
+            style={{
+              padding: "12px 24px",
+              fontSize: 17,
+              background: "transparent",
+              color: "#0071e3",
+              border: "1px solid #0071e3",
+              borderRadius: 980,
+            }}
+            className="hover:brightness-110"
+          >
+            Try Again
+          </button>
+        </section>
+      )}
+
+      {/* Results */}
+      {status === "done" && result && (
+        <>
+          {/* Verdict Hero */}
+          <section
+            className="flex flex-col items-center justify-center text-center"
+            style={{
+              background: verdictColor?.bg,
+              padding: "60px 24px",
+            }}
+          >
+            <p
+              style={{
+                fontSize: 12,
+                fontWeight: 600,
+                letterSpacing: "-0.12px",
+                color: "rgba(255, 255, 255, 0.7)",
+                textTransform: "uppercase",
+                marginBottom: 8,
+              }}
+            >
+              Verdict
+            </p>
+            <p
+              style={{
+                fontSize: "clamp(40px, 8vw, 56px)",
+                fontWeight: 600,
+                lineHeight: 1.07,
+                letterSpacing: "-0.28px",
+                color: "#ffffff",
+                margin: 0,
+              }}
+            >
+              {result.verdict}
+            </p>
+            <p
+              style={{
+                fontSize: 28,
+                fontWeight: 600,
+                lineHeight: 1.14,
+                color: "rgba(255, 255, 255, 0.9)",
+                marginTop: 12,
+              }}
+            >
+              {confidence}% confident
+            </p>
+            {/* Confidence Bar */}
+            <div
+              style={{
+                width: "100%",
+                maxWidth: 400,
+                height: 6,
+                background: "rgba(255, 255, 255, 0.2)",
+                borderRadius: 3,
+                marginTop: 20,
+                overflow: "hidden",
+              }}
+            >
+              <div
+                style={{
+                  width: `${confidence}%`,
+                  height: "100%",
+                  background: "#ffffff",
+                  borderRadius: 3,
+                  transition: "width 0.7s ease",
+                }}
+              />
+            </div>
+          </section>
+
+          {/* Article Info */}
+          <section style={{ background: "#f5f5f7", padding: "60px 24px" }}>
+            <div style={{ maxWidth: 600, margin: "0 auto" }}>
+              <p
+                style={{
+                  fontSize: 12,
+                  fontWeight: 600,
+                  letterSpacing: "-0.12px",
+                  color: "rgba(0, 0, 0, 0.48)",
+                  textTransform: "uppercase",
+                  marginBottom: 8,
+                }}
+              >
+                Article
+              </p>
+              <p
+                style={{
+                  fontSize: 28,
+                  fontWeight: 600,
+                  lineHeight: 1.14,
+                  letterSpacing: "0.196px",
+                  color: "#1d1d1f",
+                  margin: 0,
+                }}
+              >
+                {result.headline}
+              </p>
+              {result.source && (
+                <p
+                  style={{
+                    fontSize: 14,
+                    color: "#0066cc",
+                    marginTop: 8,
+                    letterSpacing: "-0.224px",
+                    wordBreak: "break-all",
+                  }}
+                >
+                  {result.source}
+                </p>
+              )}
+
+              {/* Key Facts */}
+              {result.key_facts && (
+                <div style={{ marginTop: 32 }}>
+                  <p
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 600,
+                      letterSpacing: "-0.12px",
+                      color: "rgba(0, 0, 0, 0.48)",
+                      textTransform: "uppercase",
+                      marginBottom: 8,
+                    }}
+                  >
+                    Key Facts
+                  </p>
+                  <p
+                    style={{
+                      fontSize: 17,
+                      lineHeight: 1.47,
+                      letterSpacing: "-0.374px",
+                      color: "rgba(0, 0, 0, 0.8)",
+                      margin: 0,
+                    }}
+                  >
+                    {result.key_facts}
+                  </p>
+                </div>
+              )}
+            </div>
+          </section>
+
+          {/* Scores Section */}
+          <section style={{ background: "#000000", padding: "60px 24px" }}>
+            <div
+              style={{
+                maxWidth: 600,
+                margin: "0 auto",
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: 16,
+              }}
+            >
+              {/* Credibility */}
+              <div
+                style={{
+                  background: "#1d1d1f",
+                  borderRadius: 12,
+                  padding: 24,
+                }}
+              >
+                <p
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 600,
+                    letterSpacing: "-0.12px",
+                    color: "rgba(255, 255, 255, 0.48)",
+                    textTransform: "uppercase",
+                    marginBottom: 8,
+                  }}
+                >
+                  Credibility
+                </p>
+                <p
+                  style={{
+                    fontSize: 40,
+                    fontWeight: 600,
+                    lineHeight: 1.1,
+                    color: getScoreColor(credibility),
+                    margin: 0,
+                  }}
+                >
+                  {credibility}%
+                </p>
+                <p
+                  style={{
+                    fontSize: 14,
+                    fontWeight: 600,
+                    letterSpacing: "-0.224px",
+                    color: "rgba(255, 255, 255, 0.7)",
+                    textTransform: "uppercase",
+                    marginTop: 4,
+                  }}
+                >
+                  {result.source_credibility}
+                </p>
+              </div>
+
+              {/* Manipulation */}
+              <div
+                style={{
+                  background: "#1d1d1f",
+                  borderRadius: 12,
+                  padding: 24,
+                }}
+              >
+                <p
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 600,
+                    letterSpacing: "-0.12px",
+                    color: "rgba(255, 255, 255, 0.48)",
+                    textTransform: "uppercase",
+                    marginBottom: 8,
+                  }}
+                >
+                  Manipulation
+                </p>
+                <p
+                  style={{
+                    fontSize: 40,
+                    fontWeight: 600,
+                    lineHeight: 1.1,
+                    color: getScoreColor(100 - manipulation),
+                    margin: 0,
+                  }}
+                >
+                  {manipulation}%
+                </p>
+                <p
+                  style={{
+                    fontSize: 14,
+                    fontWeight: 600,
+                    letterSpacing: "-0.224px",
+                    color: "rgba(255, 255, 255, 0.7)",
+                    marginTop: 4,
+                  }}
+                >
+                  {result.emotional_tone}
+                </p>
+              </div>
+            </div>
+          </section>
+
+          {/* Details Section */}
+          {(
+            (result.bias_detected && result.bias_detected !== "none detected") ||
+            (result.manipulation_tactics && result.manipulation_tactics !== "none") ||
+            (result.red_flags && result.red_flags !== "none")
+          ) && (
+            <section style={{ background: "#f5f5f7", padding: "60px 24px" }}>
+              <div style={{ maxWidth: 600, margin: "0 auto" }}>
+                {/* Bias */}
+                {result.bias_detected && result.bias_detected !== "none detected" && (
+                  <div style={{ marginBottom: 32 }}>
+                    <p
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 600,
+                        letterSpacing: "-0.12px",
+                        color: "rgba(0, 0, 0, 0.48)",
+                        textTransform: "uppercase",
+                        marginBottom: 8,
+                      }}
+                    >
+                      Bias Detected
+                    </p>
+                    <p
+                      style={{
+                        fontSize: 17,
+                        lineHeight: 1.47,
+                        letterSpacing: "-0.374px",
+                        color: "rgba(0, 0, 0, 0.8)",
+                        margin: 0,
+                      }}
+                    >
+                      {result.bias_detected}
+                    </p>
+                  </div>
+                )}
+
+                {/* Tactics */}
+                {result.manipulation_tactics && result.manipulation_tactics !== "none" && (
+                  <div style={{ marginBottom: 32 }}>
+                    <p
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 600,
+                        letterSpacing: "-0.12px",
+                        color: "rgba(0, 0, 0, 0.48)",
+                        textTransform: "uppercase",
+                        marginBottom: 12,
+                      }}
+                    >
+                      Manipulation Tactics
+                    </p>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                      {result.manipulation_tactics.split(",").map((t) => (
+                        <span
+                          key={t.trim()}
+                          style={{
+                            display: "inline-block",
+                            padding: "6px 14px",
+                            background: "#1d1d1f",
+                            color: "#ffffff",
+                            fontSize: 12,
+                            fontWeight: 600,
+                            borderRadius: 980,
+                            letterSpacing: "-0.12px",
+                          }}
+                        >
+                          {t.trim()}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Red Flags */}
+                {result.red_flags && result.red_flags !== "none" && (
+                  <div>
+                    <p
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 600,
+                        letterSpacing: "-0.12px",
+                        color: "rgba(0, 0, 0, 0.48)",
+                        textTransform: "uppercase",
+                        marginBottom: 12,
+                      }}
+                    >
+                      Red Flags
+                    </p>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                      {result.red_flags.split(",").map((f) => (
+                        <span
+                          key={f.trim()}
+                          style={{
+                            display: "inline-block",
+                            padding: "6px 14px",
+                            background: "#ff3b30",
+                            color: "#ffffff",
+                            fontSize: 12,
+                            fontWeight: 600,
+                            borderRadius: 980,
+                            letterSpacing: "-0.12px",
+                          }}
+                        >
+                          {f.trim()}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </section>
+          )}
+
+          {/* Recommendation */}
+          {result.recommendation && (
+            <section style={{ background: "#000000", padding: "60px 24px" }}>
+              <div style={{ maxWidth: 600, margin: "0 auto", textAlign: "center" }}>
+                <p
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 600,
+                    letterSpacing: "-0.12px",
+                    color: "rgba(255, 255, 255, 0.48)",
+                    textTransform: "uppercase",
+                    marginBottom: 12,
+                  }}
+                >
+                  Recommendation
+                </p>
+                <p
+                  style={{
+                    fontSize: 21,
+                    fontWeight: 600,
+                    lineHeight: 1.19,
+                    letterSpacing: "0.231px",
+                    color: "#ffffff",
+                    margin: 0,
+                  }}
+                >
+                  {result.recommendation}
+                </p>
+              </div>
+            </section>
+          )}
+
+          {/* Analyze Another */}
+          <section
+            className="flex items-center justify-center"
+            style={{ background: "#f5f5f7", padding: "40px 24px" }}
+          >
+            <button
+              onClick={handleReset}
+              style={{
+                padding: "12px 28px",
+                fontSize: 17,
+                fontWeight: 400,
+                background: "#0071e3",
+                color: "#ffffff",
+                borderRadius: 980,
+              }}
+              className="hover:brightness-110"
+            >
+              Analyze Another Article
+            </button>
+          </section>
+        </>
+      )}
+
+      {/* Footer — always visible, stuck to bottom */}
+      <footer
+        className="flex items-center justify-center"
+        style={{
+          marginTop: "auto",
+          background: "#f5f5f7",
+          padding: "16px 24px",
+          borderTop: "1px solid rgba(0, 0, 0, 0.06)",
+        }}
+      >
+        <p style={{ fontSize: 12, color: "rgba(0, 0, 0, 0.48)", letterSpacing: "-0.12px", margin: 0 }}>
+          AI-generated analysis. Always verify from multiple trusted sources.
+        </p>
       </footer>
     </div>
   );
