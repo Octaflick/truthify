@@ -288,14 +288,14 @@ export default function Home() {
 
             {/* Recommendation */}
             {result.recommendation && (
-              <div className="p-6 bg-black/[0.02] border-t border-black/10">
+              <div className="p-6 bg-black/2 border-t border-black/10">
                 <p className="text-xs font-bold uppercase tracking-widest opacity-40 mb-2">Recommendation</p>
                 <p className="text-sm font-medium leading-relaxed">{result.recommendation}</p>
               </div>
             )}
 
             {/* Disclaimer */}
-            <div className="px-6 py-4 bg-black/[0.04] border-t border-black/10">
+            <div className="px-6 py-4 bg-black/4 border-t border-black/10">
               <p className="text-xs opacity-40 text-center">
                 AI-generated analysis. Always verify from multiple trusted sources.
               </p>
